@@ -27,7 +27,7 @@
     <script src="js/knockout-3.4.2.js"></script>
     <script src="js/bootstrap.min.js"></script>
 
-    <div class="container">
+    <div data-bind="visible: showMain()" class="container">
         <h1>Quick Ledger</h1>
 
         <div class="total-area">
@@ -36,7 +36,7 @@
         </div>
 
         <button class="btn btn-lg btn-danger" onclick="clearLedger()">Clear</button>
-        <button class="btn btn-lg btn-success" onclick="window.location.href = 'addItem.html'">Add</button>
+        <button class="btn btn-lg btn-success" data-bind="click: addForm">Add</button>
         <br/>
         <br/>
         <table class="table ledgerItems">
@@ -46,7 +46,7 @@
                     <th>Amount</th>
                 </tr>
             </thead>
-            <tbody data-bind="foreach: LedgerItems">
+            <tbody data-bind="foreach: LedgerItems()">
                 <tr>
                     <td data-bind="text: description"></td>
                     <td data-bind="style: {color: type == 'credit' ? 'green' : 'red'}">
@@ -55,6 +55,33 @@
                 </tr>
             </tbody>
         </table>
+
+    </div>
+
+    <div data-bind="visible: showAdd()" class="container">
+        <h1>New Item</h1>
+        
+
+            <div class="form-group">
+                <label for="description">Description</label>
+                <input data-bind="value: formData.description" type="text" class="form-control" placeholder="Brief summary">
+            </div>
+            <div class="form-group">
+                <label for="amount">Amount</label>
+                <input data-bind="value: formData.amount" type="number" class="form-control" placeholder="Amount">
+            </div>
+
+                <label for="property">Type</label>
+                <select data-bind="value: formData.type" class="form-control form-control-lg">
+                    <option value="debit">Debit</option>
+                    <option value="credit">Credit</option>
+                </select>
+            
+            <br/>
+
+            <button class="btn btn-success btn-lg" onclick="addItem()">Add</button>
+            <button class="btn btn-danger btn-lg" data-bind="click: cancelAdd ">Cancel</button>
+
 
     </div>
 
@@ -72,13 +99,33 @@
 
             var self = this;
 
-            this.LedgerItems = ledgerData;
+            this.LedgerItems = ko.observable(ledgerData);
 
             this.totalType = "";
 
-            this.total = function(){
+            this.showMain = ko.observable(true);
 
-                var tempTotal = ledgerData.reduce(function(acc,cur){
+            this.showAdd = ko.observable(false);
+
+            this.formData = {
+                description:  ko.observable(""),
+                amount: ko.observable(""),
+                type: ko.observable("")
+            }
+
+            this.addForm = function(){
+                self.showMain(false);
+                self.showAdd(true);
+            }
+
+            this.cancelAdd = function(){
+                self.showMain(true);
+                self.showAdd(false);
+            }
+
+            this.total = ko.computed(function(){
+
+                var tempTotal = self.LedgerItems().reduce(function(acc,cur){
                     if(cur.type == "credit"){
                         return {amount:acc.amount+cur.amount,type:"credit"};
                     }else{
@@ -94,7 +141,7 @@
                     self.totalType = "credit";
                     return "<span style='color:green'>"+tempTotal.amount.toFixed(2)+"</span>";
                 }
-            }
+            });
 
             this.itemAmountStyle = function(amount, type){
                 var twoDec = amount.toFixed(2);
@@ -111,11 +158,34 @@
             };
         }
 
-        ko.applyBindings(new AppViewModel());
+        var addVM = new AppViewModel()
+
+        ko.applyBindings(addVM);
 
         var clearLedger = function(){
             localStorage.QuickLedger = [];
             window.location.reload();
+        };
+
+        var addItem = function(){
+
+            var formData = JSON.parse(ko.toJSON(addVM)).formData;
+
+            var description = formData.description;
+            var amount = parseFloat(formData.amount);
+            var type = formData.type;
+
+
+
+            ledgerData.push({description,amount,type});
+            addVM.LedgerItems(ledgerData);
+            localStorage.QuickLedger = JSON.stringify(ledgerData);
+            addVM.showAdd(false);
+            addVM.showMain(true);
+            addVM.formData.description("");
+            addVM.formData.amount("");
+            addVM.formData.type("")
+
         };
 
     </script>
