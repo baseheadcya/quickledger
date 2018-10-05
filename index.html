@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Title of the document</title>
+
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link rel="stylesheet" href="css/bootstrap.min.css"/>
+    
+    <style>
+        .total-area{
+            font-size:25px
+        }
+
+        .ledgerItems{
+            font-size:16px
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <script src="js/jquery-3.3.1.min.js"></script>
+    <script src="js/knockout-3.4.2.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+
+    <div class="container">
+        <h1>Quick Ledger</h1>
+
+        <div class="total-area">
+            <label>Total:</label>
+            <span data-bind="html: total()"></span>
+        </div>
+
+        <button class="btn btn-lg btn-danger" onclick="clearLedger()">Clear</button>
+        <button class="btn btn-lg btn-success" onclick="window.location.href = 'addItem.html'">Add</button>
+        <br/>
+        <br/>
+        <table class="table ledgerItems">
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody data-bind="foreach: LedgerItems">
+                <tr>
+                    <td data-bind="text: description"></td>
+                    <td data-bind="style: {color: type == 'credit' ? 'green' : 'red'}">
+                        <span data-bind="text: $parent.itemAmountStyle(amount,type)"></span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+
+    <script>
+
+        var ledgerData = [];
+
+        if(localStorage.QuickLedger === undefined || localStorage.QuickLedger === ""){
+            localStorage.QuickLedger = [];
+        }else{
+            ledgerData = JSON.parse(localStorage.QuickLedger);
+        };
+
+        function AppViewModel(){
+
+            var self = this;
+
+            this.LedgerItems = ledgerData;
+
+            this.totalType = "";
+
+            this.total = function(){
+
+                var tempTotal = ledgerData.reduce(function(acc,cur){
+                    if(cur.type == "credit"){
+                        return {amount:acc.amount+cur.amount,type:"credit"};
+                    }else{
+                        return {amount:acc.amount-cur.amount,type:"credit"};
+                    }
+                },{amount:0,type:"credit"});
+
+                if(tempTotal.amount < 0){
+                    tempTotal.amount = tempTotal.amount * -1;
+                    self.totalType = "debit";
+                    return "<span style='color:red'>("+tempTotal.amount.toFixed(2)+")</span>";
+                }else{
+                    self.totalType = "credit";
+                    return "<span style='color:green'>"+tempTotal.amount.toFixed(2)+"</span>";
+                }
+            }
+
+            this.itemAmountStyle = function(amount, type){
+                var twoDec = amount.toFixed(2);
+                var output = ""
+
+                if(type == "credit"){
+                    output = twoDec;
+                }
+                else{
+                    output = "("+twoDec+")";
+                }
+
+                return output
+            };
+        }
+
+        ko.applyBindings(new AppViewModel());
+
+        var clearLedger = function(){
+            localStorage.QuickLedger = [];
+            window.location.reload();
+        };
+
+    </script>
+
+</body>
+
+</html>
